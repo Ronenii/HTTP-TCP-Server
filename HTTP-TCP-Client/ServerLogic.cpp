@@ -125,200 +125,59 @@ void removeSocket(ServerSocket::SocketState &socket, int& socketsCount, int inde
 	cout << "The socket number " << index << " has been removed\n" << endl;
 }
 
-bool sendMessage(int index, SocketState* sockets)
+bool sendMessage(int index, ServerSocket::SocketState* sockets)
 {
-	int bytesSent = 0, buffLen = 0, fileSize = 0;
+	int bytesSent = 0, buffLen = 0;
 	char sendBuff[BUFFSIZE];
-	char* subBuff;
-	char tempBuff[BUFFSIZE], readBuff[BUFFSIZE];
-	string message, fileSizeString, fileAddress;
-	ifstream File;
-	time_t currentTime;
-	time(&currentTime);
+	string message;
 	SOCKET msgSocket = sockets[index].id;
 	sockets[index].prevActivity = time(0);
+
 	switch (sockets[index].httpReq)
 	{
-	case HEAD:
+	case HttpRequest::eRequestType::head:
 	{
-		subBuff = strtok(sockets[index].buffer, " ");
-		fileAddress = "C:\\temp\\indexen.html";
-		File.open(fileAddress);
-		if (!File) {
-			message = "HTTP/1.1 " + to_string(NOT_FOUND) + " Not Found ";
-			fileSize = 0;
-		}
-		else {
-			message = "HTTP/1.1 " + to_string(OK) + " OK ";
-			File.seekg(0, ios::end);
-			fileSize = File.tellg();
-		}
-		time_t timtTType = parse_to_time_t(filesystem::last_write_time(filesystem::path{ fileAddress }));
-		tm* gmt = gmtime(&timtTType);
-		stringstream buffer;
-		buffer << put_time(gmt, "%A, %d %B %Y %H:%M");
-		string formattedFileModifiedTime = buffer.str();
-
-		message += "\r\nContent-type: text/html";
-		message += "\r\nDate:";
-		message += formattedFileModifiedTime;
-		message += "\r\nContent-length: ";
-		fileSizeString = to_string(fileSize);
-		message += fileSizeString;
-		message += "\r\n\r\n";
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
-		File.close();
+		message = HttpRequest::doHead(sockets[index], buffLen);
 		break;
 	}
-	case GET:
+	case HttpRequest::eRequestType::get:
 	{
-		string FileContent = "";
-		subBuff = strtok(sockets[index].buffer, " ");
-		fileAddress = "C:\\temp\\index";
-		string langValue = GetQuery(subBuff, "lang");
-		if (langValue.empty())
-		{
-			fileAddress += "en";
-		}
-		else
-		{
-			fileAddress += langValue;
-		}
-		fileAddress.append(".html");
-		File.open(fileAddress);
-		if (!File)
-		{
-			message = "HTTP/1.1 " + to_string(NOT_FOUND) + " Not Found ";
-			File.open("C:\\temp\\error.html");
-		}
-		else
-		{
-			message = "HTTP/1.1 " + to_string(OK) + " OK ";
-		}
-
-		if (File)
-		{
-			while (File.getline(readBuff, BUFFSIZE))
-			{
-				FileContent += readBuff;
-				fileSize += strlen(readBuff);
-			}
-		}
-
-		message += "\r\nContent-type: text/html";
-		message += "\r\nDate:";
-		message += ctime(&currentTime);
-		message += "Content-length: ";
-		fileSizeString = to_string(fileSize);
-		message += fileSizeString;
-		message += "\r\n\r\n";
-		message += FileContent;
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
-		File.close();
+		message = HttpRequest::doGet(sockets[index], buffLen);
 		break;
 	}
 
-	case PUT:
+	case HttpRequest::eRequestType::put:
 	{
-		char fileName[BUFFSIZE];
-		int res = put(index, fileName, sockets);
-		switch (res)
-		{
-		case FAILED: {
-			cout << "PUT " << fileName << "Failed";
-			message = "HTTP/1.1 " + to_string(FAILED) + " Precondition failed \r\nDate: ";
-			break;
-		}
-		case OK: {
-			message = "HTTP/1.1 " + to_string(OK) + " OK \r\nDate: ";
-			break;
-		}
-
-		case CREATED: {
-			message = "HTTP/1.1 " + to_string(CREATED) + " CREATED \r\nDate: ";
-			break;
-		}
-		}
-
-		message += ctime(&currentTime);
-		message += "Content-length: ";
-		fileSizeString = to_string(fileSize);
-		message += fileSizeString;
-		message += "\r\n\r\n";
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
+		message = HttpRequest::doPut(sockets[index], buffLen);
 		break;
 	}
-	case DELETE1:
+	case HttpRequest::eRequestType::del:
 	{
-		string fileName = GetQuery(sockets[index].buffer, "fileName");
-
-		fileName = string{ "C:\\temp\\" } + fileName;
-		fileName += string{ ".txt" };
-		if (remove(fileName.c_str()) != 0)
-		{
-			message = "HTTP/1.1 " + to_string(NO_CONTENT) + " File not found \r\nDate: ";
-		}
-		else
-		{
-			message = "HTTP/1.1 " + to_string(OK) + " OK DELETED \r\nDate: ";
-		}
-
-		message += ctime(&currentTime);
-		message += "Content-length: ";
-		fileSizeString = to_string(fileSize);
-		message += fileSizeString;
-		message += "\r\n\r\n";
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
+		message = HttpRequest::doDelete(sockets[index], buffLen);
 		break;
 	}
-	case TRACE:
+	case HttpRequest::eRequestType::trace:
 	{
-		fileSize = strlen("TRACE");
-		fileSize += strlen(sockets[index].buffer);
-		message = "HTTP/1.1 " + to_string(OK) + " OK \r\nContent-type: message/http\r\nDate: ";
-		message += ctime(&currentTime);
-		message += "Content-length: ";
-		fileSizeString = to_string(fileSize);
-		message += fileSizeString;
-		message += "\r\n\r\n";
-		message += "TRACE";
-		message += sockets[index].buffer;
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
+		message = HttpRequest::doTrace(sockets[index], buffLen);
 		break;
 	}
 
-	case OPTIONS: {
-		message = "HTTP/1.1 " + to_string(NO_CONTENT) + " No Content\r\nOptions: HEAD, GET, POST, PUT, TRACE, DELETE, OPTIONS\r\n";
-		message += "Content-length: 0\r\n\r\n";
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
-		break;
-	}
-
-	case POST:
+	case HttpRequest::eRequestType::options: 
 	{
-		message = "HTTP/1.1 " + to_string(OK) + " OK \r\nDate:";
-		message += ctime(&currentTime);
-		message += "Content-length: 0\r\n\r\n";
-		string bodyMessage = get_field_value(string{ sockets[index].buffer }, string{ "body" });
-		cout << "Message received: " << bodyMessage << "\n";
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
+		message = HttpRequest::doOptions(sockets[index], buffLen);
 		break;
 	}
-	case NOT_ALLOWED_REQ:
-		message = "HTTP/1.1 " + to_string(NOT_OK) + " BAD REQUEST \r\nDate:";
-		message += ctime(&currentTime);
-		message += "Content-length: 0\r\n\r\n";
-		buffLen = message.size();
-		strcpy(sendBuff, message.c_str());
+
+	case HttpRequest::eRequestType::post:
+	{
+		message = HttpRequest::doPost(sockets[index], buffLen);
+		break;
+	}
+	case HttpRequest::eRequestType::not_allowed:
+		message = HttpRequest::doNotAllowed(sockets[index], buffLen);
 	}
 
+	strcpy(sendBuff, message.c_str());
 	bytesSent = send(msgSocket, sendBuff, buffLen, 0);
 	memset(sockets[index].buffer, 0, BUFFSIZE);
 	sockets[index].socketDataLen = 0;
@@ -327,15 +186,15 @@ bool sendMessage(int index, SocketState* sockets)
 		cout << "HTTP Server: Error at send(): " << WSAGetLastError() << endl;
 		return false;
 	}
-	sockets[index].send = IDLE;
+	sockets[index].send = ServerSocket::eSocketStatus::IDLE;
 	return true;
 }
 
-int put(int index, char* filename, SocketState* sockets)
+int put(char* filename, ServerSocket::SocketState &socket)
 {
 	int buffLen = 0;
 	int CODE = OK, content_len = 0;
-	string str_buffer = { sockets[index].buffer };
+	string str_buffer = { socket.buffer };
 	string value, file_name;
 	value = get_field_value(str_buffer, "Content-Length");
 	content_len = stoi(value);

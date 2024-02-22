@@ -50,7 +50,7 @@ void removeSocket(ServerSocket::SocketState &socket, int& socketsCount, int inde
 void acceptConnection(int index, SocketState* sockets, int& socketsCount);
 void rcvMessage(int index, SocketState* sockets, int& socketsCount);
 bool sendMessage(int index, SocketState* sockets);
-int put(int index, char* filename, SocketState* sockets);
+int put(char* filename, ServerSocket::SocketState &socket);
 string get_field_value(const string& request, const string& field);
 string GetQuery(const string& request, const string& param);
 template <typename TP>

@@ -1,7 +1,8 @@
 #pragma once
 #ifndef HTTPREQUEST
 #define HTTPREQUEST
-
+#include  "ServerSocket.h"
+#include "HttpStatus.h"
 #include <exception>
 #include <ctime>
 #include <string>
@@ -11,8 +12,7 @@
 #include <iomanip>
 #include <filesystem>
 #include <format>
-#include  "ServerSocket.h"
-#include "HttpStatus.h"
+
 
 namespace HttpRequest
 {
@@ -33,15 +33,16 @@ namespace HttpRequest
 
 
 	// Placeholders
-	void doGet();
-	void doHead(ServerSocket::SocketState &socket);
-	void doPut();
-	void doPost();
-	void doDelete();
-	void doTrace();
-	void doOptions();
+	std::string doGet(ServerSocket::SocketState& socket, int &buffLen);
+	std::string doHead(ServerSocket::SocketState &socket, int& buffLen);
+	std::string doPut(ServerSocket::SocketState& socket, int& buffLen);
+	std::string doPost(ServerSocket::SocketState& socket, int& buffLen);
+	std::string doDelete(ServerSocket::SocketState& socket, int& buffLen);
+	std::string doTrace(ServerSocket::SocketState& socket, int& buffLen);
+	std::string doOptions(ServerSocket::SocketState& socket, int& buffLen);
+	std::string doNotAllowed(ServerSocket::SocketState& socket, int& buffLen);
 	std::string httpMessageStart(HttpStatus::eCode code);
-	std::string getLastModifiedTime(const string& filePath);
+	std::string getLastModifiedTime(const std::string& filePath);
 }
 
 #endif 
