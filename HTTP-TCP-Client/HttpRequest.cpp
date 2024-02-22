@@ -29,12 +29,12 @@ std::string HttpRequest::doGet(ServerSocket::SocketState& socket, int& buffLen)
 	File.open(fileAddress);
 	if (!File)
 	{
-		message = httpMessageStart(HttpStatus::eCode::not_found);
+		message = httpMessageStart(HttpStatus::eCode::not_found, nullptr);
 		File.open("C:\\temp\\error.html");
 	}
 	else
 	{
-		message = httpMessageStart(HttpStatus::eCode::ok);
+		message = httpMessageStart(HttpStatus::eCode::ok, nullptr);
 	}
 
 	if (File)
@@ -70,11 +70,11 @@ std::string HttpRequest::doHead(ServerSocket::SocketState& socket, int& buffLen)
 	
 	File.open(filePath);
 	if (!File) {
-		message = httpMessageStart(HttpStatus::eCode::not_found);
+		message = httpMessageStart(HttpStatus::eCode::not_found, nullptr);
 		fileSize = 0;
 	}
 	else {
-		message = httpMessageStart(HttpStatus::eCode::ok);
+		message = httpMessageStart(HttpStatus::eCode::ok, nullptr);
 		File.seekg(0, std::ios::end);
 		fileSize = File.tellg();
 	}
@@ -107,18 +107,18 @@ std::string HttpRequest::doPut(ServerSocket::SocketState& socket, int& buffLen)
 	case FAILED:
 		{
 			cout << "PUT " << fileName << "Failed";
-			message = httpMessageStart(HttpStatus::eCode::precondition_failed);
+			message = httpMessageStart(HttpStatus::eCode::precondition_failed, " Precondition failed \r\nDate: ");
 			break;
 		}
 	case OK:
 		{
-			message = httpMessageStart(HttpStatus::eCode::ok);
+			message = httpMessageStart(HttpStatus::eCode::ok, " OK \r\nDate: ");
 			break;
 		}
 
 	case CREATED:
 		{
-			message = httpMessageStart(HttpStatus::eCode::created);
+			message = httpMessageStart(HttpStatus::eCode::created, " CREATED \r\nDate: ");
 			break;
 		}
 	}
@@ -145,11 +145,11 @@ std::string HttpRequest::doDelete(ServerSocket::SocketState& socket, int& buffLe
 
 	if (remove(fileName.c_str()) != 0)
 	{
-		message = httpMessageStart(HttpStatus::eCode::no_content);
+		message = httpMessageStart(HttpStatus::eCode::no_content, " File not found \r\nDate: ");
 	}
 	else
 	{
-		message = httpMessageStart(HttpStatus::eCode::ok);
+		message = httpMessageStart(HttpStatus::eCode::ok, " OK DELETED \r\nDate: ");
 	}
 
 	message += ctime(&currentTime);
@@ -171,7 +171,7 @@ std::string HttpRequest::doTrace(ServerSocket::SocketState& socket, int& buffLen
 
 	fileSize = strlen("TRACE");
 	fileSize += strlen(socket.buffer);
-	message = "HTTP/1.1 " + to_string(OK) + " OK \r\nContent-type: message/http\r\nDate: ";
+	message = httpMessageStart(HttpStatus::eCode::ok, " OK \r\nContent-type: message/http\r\nDate: ");
 	message += ctime(&currentTime);
 	message += "Content-length: ";
 	fileSizeString = to_string(fileSize);
@@ -188,7 +188,7 @@ std::string HttpRequest::doOptions(ServerSocket::SocketState& socket, int& buffL
 	std::string message;
 	char sendBuff[bufferSize];
 
-	message = "HTTP/1.1 " + to_string(NO_CONTENT) + " No Content\r\nOptions: HEAD, GET, POST, PUT, TRACE, DELETE, OPTIONS\r\n";
+	message = httpMessageStart(HttpStatus::eCode::ok, " No Content\r\nOptions: HEAD, GET, POST, PUT, TRACE, DELETE, OPTIONS\r\n");
 	message += "Content-length: 0\r\n\r\n";
 	buffLen = message.size();
 	return message;
@@ -201,7 +201,7 @@ std::string HttpRequest::doPost(ServerSocket::SocketState& socket, int& buffLen)
 	time_t currentTime;
 	time(&currentTime);
 
-	message = "HTTP/1.1 " + to_string(OK) + " OK \r\nDate:";
+	message = httpMessageStart(HttpStatus::eCode::ok, " OK \r\nDate: ");
 	message += ctime(&currentTime);
 	message += "Content-length: 0\r\n\r\n";
 	string bodyMessage = get_field_value(string{ socket.buffer }, string{ "body" });
@@ -217,7 +217,7 @@ std::string HttpRequest::doNotAllowed(ServerSocket::SocketState& socket, int& bu
 	time_t currentTime;
 	time(&currentTime);
 
-	message = "HTTP/1.1 " + to_string(NOT_OK) + " BAD REQUEST \r\nDate:";
+	message = httpMessageStart(HttpStatus::eCode::bad_request, " BAD REQUEST \r\nDate:");
 	message += ctime(&currentTime);
 	message += "Content-length: 0\r\n\r\n";
 	buffLen = message.size();
@@ -225,9 +225,14 @@ std::string HttpRequest::doNotAllowed(ServerSocket::SocketState& socket, int& bu
 }
 
 
-std::string HttpRequest::httpMessageStart(HttpStatus::eCode code)
+std::string HttpRequest::httpMessageStart(HttpStatus::eCode code, std::string message)
 {
-	return httpVer + " " + std::to_string(static_cast<int>(code)) + " " + HttpStatus::reasonPhrase(code);
+	if(message.empty())
+	{
+		return httpVer + " " + std::to_string(static_cast<int>(code)) + " " + HttpStatus::reasonPhrase(code);
+	}
+
+	return httpVer + " " + std::to_string(static_cast<int>(code)) + " " + HttpStatus::reasonPhrase(code) + message;
 }
 
 std::string getLastModifiedTime(const std::string& filePath) {
