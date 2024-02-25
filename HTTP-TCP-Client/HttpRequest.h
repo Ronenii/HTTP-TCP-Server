@@ -43,7 +43,6 @@ namespace HttpRequest
 	std::string doOptions(ServerSocket::SocketState& socket, int& buffLen);
 	std::string doNotAllowed(ServerSocket::SocketState& socket, int& buffLen);
 	std::string httpMessageStart(HttpStatus::eCode code, std::string message);
-	std::string getLastModifiedTime(const std::string& filePath);
 	std::ifstream::pos_type getFileSize(const char* filename);
 
 }

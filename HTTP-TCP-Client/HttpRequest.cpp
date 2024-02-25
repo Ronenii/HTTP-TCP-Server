@@ -164,22 +164,15 @@ std::string HttpRequest::doDelete(ServerSocket::SocketState& socket, int& buffLe
 std::string HttpRequest::doTrace(ServerSocket::SocketState& socket, int& buffLen)
 {
 	int fileSize = 0;
+	const string body = socket.buffer;
 	std::string message, fileSizeString;
-	char sendBuff[bufferSize];
-	time_t currentTime;
-	time(&currentTime);
 
-	fileSize = strlen("TRACE");
-	fileSize += strlen(socket.buffer);
-	message = httpMessageStart(HttpStatus::eCode::ok, " OK \r\nContent-type: message/http\r\nDate: ");
-	message += ctime(&currentTime);
-	message += "Content-length: ";
-	fileSizeString = to_string(fileSize);
-	message += fileSizeString;
-	message += "\r\n\r\n";
-	message += "TRACE";
-	message += socket.buffer;
-	buffLen = message.size();
+	HttpStatus::eCode code = HttpStatus::eCode::ok;
+	
+
+	HttpResponse::Response* response = HttpResponse::buildHttpResponse(httpVer, code, "message/http", body);
+	message = HttpResponse::httpResponseToString(*response);
+	free(response);
 	return message;
 }
 
@@ -197,7 +190,6 @@ std::string HttpRequest::doOptions(ServerSocket::SocketState& socket, int& buffL
 std::string HttpRequest::doPost(ServerSocket::SocketState& socket, int& buffLen)
 {
 	std::string message;
-	char sendBuff[bufferSize];
 	time_t currentTime;
 	time(&currentTime);
 
@@ -233,21 +225,6 @@ std::string HttpRequest::httpMessageStart(HttpStatus::eCode code, std::string me
 	}
 
 	return httpVer + " " + std::to_string(static_cast<int>(code)) + " " + HttpStatus::reasonPhrase(code) + message;
-}
-
-std::string HttpRequest::getLastModifiedTime(const std::string& filePath) {
-	struct stat result;
-	std::string lastModifiedTime;
-	if (stat(filePath.c_str(), &result) != 0)
-	{
-		const time_t timeModified = result.st_mtime;
-		const tm* gmt = gmtime(&timeModified);
-		std::stringstream buffer;
-		buffer << std::put_time(gmt, "%A, %d %B %Y %H:%M");
-		lastModifiedTime = buffer.str();
-
-	}
-	return lastModifiedTime;
 }
 
 std::ifstream::pos_type HttpRequest::getFileSize(const char* filename)
