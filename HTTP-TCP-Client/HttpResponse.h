@@ -1,6 +1,7 @@
 #pragma once
-#ifndef HTTPREQUEST
-#define HTTPREQUEST
+#ifndef HTTPRESPONSE
+#define HTTPRESPONSE
+
 #include <string>
 #include "HttpStatus.h"
 
