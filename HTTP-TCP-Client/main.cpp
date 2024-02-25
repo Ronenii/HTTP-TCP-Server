@@ -9,12 +9,6 @@ using namespace std;
 #include "ServerLogic.h"
 
 const int TIME_PORT = 27015;
-const int MAX_SOCKETS = 60;
-const int EMPTY = 0;
-const int LISTEN = 1;
-const int RECEIVE = 2;
-const int IDLE = 3;
-const int SEND = 4;
 const int SEND_TIME = 1;
 const int SEND_SECONDS = 2;
 
@@ -24,7 +18,7 @@ void acceptConnection(int index);
 void receiveMessage(int index);
 void sendMessage(int index);
 
-struct SocketState sockets[MAX_SOCKETS] = { 0 };
+SocketState sockets[MAX_SOCKETS] = { 0 };
 int socketsCount = 0;
 
 
@@ -202,9 +196,9 @@ bool addSocket(SOCKET id, int what)
 		if (sockets[i].recv == EMPTY)
 		{
 			sockets[i].id = id;
-			sockets[i].recv = what;
+			sockets[i].recv = static_cast<eSocketStatus>(what);
 			sockets[i].send = IDLE;
-			sockets[i].len = 0;
+			sockets[i].dataLen = 0;
 			socketsCount++;
 			return (true);
 		}
@@ -254,7 +248,7 @@ void receiveMessage(int index)
 {
 	SOCKET msgSocket = sockets[index].id;
 
-	int len = sockets[index].len;
+	int len = sockets[index].dataLen;
 	int bytesRecv = recv(msgSocket, &sockets[index].buffer[len], sizeof(sockets[index].buffer) - len, 0);
 
 	if (SOCKET_ERROR == bytesRecv)
@@ -275,24 +269,24 @@ void receiveMessage(int index)
 		sockets[index].buffer[len + bytesRecv] = '\0'; //add the null-terminating to make it a string
 		cout << "Time Server: Recieved: " << bytesRecv << " bytes of \"" << &sockets[index].buffer[len] << "\" message.\n";
 
-		sockets[index].len += bytesRecv;
+		sockets[index].dataLen += bytesRecv;
 
-		if (sockets[index].len > 0)
+		if (sockets[index].dataLen > 0)
 		{
 			if (strncmp(sockets[index].buffer, "TimeString", 10) == 0)
 			{
 				sockets[index].send = SEND;
 				sockets[index].sendSubType = SEND_TIME;
-				memcpy(sockets[index].buffer, &sockets[index].buffer[10], sockets[index].len - 10);
-				sockets[index].len -= 10;
+				memcpy(sockets[index].buffer, &sockets[index].buffer[10], sockets[index].dataLen - 10);
+				sockets[index].dataLen -= 10;
 				return;
 			}
 			else if (strncmp(sockets[index].buffer, "SecondsSince1970", 16) == 0)
 			{
 				sockets[index].send = SEND;
 				sockets[index].sendSubType = SEND_SECONDS;
-				memcpy(sockets[index].buffer, &sockets[index].buffer[16], sockets[index].len - 16);
-				sockets[index].len -= 16;
+				memcpy(sockets[index].buffer, &sockets[index].buffer[16], sockets[index].dataLen - 16);
+				sockets[index].dataLen -= 16;
 				return;
 			}
 			else if (strncmp(sockets[index].buffer, "Exit", 4) == 0)

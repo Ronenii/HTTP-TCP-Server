@@ -18,7 +18,7 @@ namespace ServerSocket
 		HttpRequest::eRequestType		httpReq;
 		char							buffer[buffer];
 		time_t							prevActivity;
-		int								socketDataLen;
+		int								dataLen;
 	};
 }
 # endif 
