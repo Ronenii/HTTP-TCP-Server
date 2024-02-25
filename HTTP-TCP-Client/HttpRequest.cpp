@@ -71,6 +71,7 @@ std::string HttpRequest::doHead(ServerSocket::SocketState& socket, int& buffLen)
 	File.open(filePath);
 	if (!File) {
 		message = httpMessageStart(HttpStatus::eCode::not_found, nullptr);
+		File.open("C:\\temp\\error.html");
 		fileSize = 0;
 	}
 	else {
@@ -85,6 +86,7 @@ std::string HttpRequest::doHead(ServerSocket::SocketState& socket, int& buffLen)
 	message += "\r\nDate:";
 	message += lastModifiedTime;
 	message += "\r\nContent-length: ";
+	fileSize = File.tellg();
 	fileSizeString = std::to_string(fileSize);
 	message += fileSizeString;
 	message += "\r\n\r\n";
@@ -96,7 +98,6 @@ std::string HttpRequest::doHead(ServerSocket::SocketState& socket, int& buffLen)
 std::string HttpRequest::doPut(ServerSocket::SocketState& socket, int& buffLen)
 {
 	std::string message, fileSizeString;
-	int fileSize = 0;
 	char fileName[bufferSize], sendBuff[bufferSize];
 	int res = put(fileName, socket);
 	time_t currentTime;
@@ -125,8 +126,6 @@ std::string HttpRequest::doPut(ServerSocket::SocketState& socket, int& buffLen)
 
 	message += ctime(&currentTime);
 	message += "Content-length: ";
-	fileSizeString = to_string(fileSize);
-	message += fileSizeString;
 	message += "\r\n\r\n";
 	buffLen = message.size();
 	return message;
@@ -134,7 +133,6 @@ std::string HttpRequest::doPut(ServerSocket::SocketState& socket, int& buffLen)
 
 std::string HttpRequest::doDelete(ServerSocket::SocketState& socket, int& buffLen)
 {
-	int fileSize = 0;
 	string fileName = GetQuery(socket.buffer, "fileName");
 	std::string message, fileSizeString;
 	fileName = string{ "C:\\temp\\" } + fileName;
@@ -154,7 +152,6 @@ std::string HttpRequest::doDelete(ServerSocket::SocketState& socket, int& buffLe
 
 	message += ctime(&currentTime);
 	message += "Content-length: ";
-	fileSizeString = to_string(fileSize);
 	message += fileSizeString;
 	message += "\r\n\r\n";
 	buffLen = message.size();
@@ -235,7 +232,7 @@ std::string HttpRequest::httpMessageStart(HttpStatus::eCode code, std::string me
 	return httpVer + " " + std::to_string(static_cast<int>(code)) + " " + HttpStatus::reasonPhrase(code) + message;
 }
 
-std::string getLastModifiedTime(const std::string& filePath) {
+std::string HttpRequest::getLastModifiedTime(const std::string& filePath) {
 	struct stat result;
 	std::string lastModifiedTime;
 	if (stat(filePath.c_str(), &result) != 0)
@@ -248,5 +245,11 @@ std::string getLastModifiedTime(const std::string& filePath) {
 
 	}
 	return lastModifiedTime;
+}
+
+std::ifstream::pos_type HttpRequest::getFileSize(const char* filename)
+{
+	std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+	return in.tellg();
 }
 

@@ -3,6 +3,7 @@
 #define HTTPREQUEST
 #include  "ServerSocket.h"
 #include "HttpStatus.h"
+#include  "HttpResponse.h"
 #include <exception>
 #include <ctime>
 #include <string>
@@ -43,6 +44,8 @@ namespace HttpRequest
 	std::string doNotAllowed(ServerSocket::SocketState& socket, int& buffLen);
 	std::string httpMessageStart(HttpStatus::eCode code, std::string message);
 	std::string getLastModifiedTime(const std::string& filePath);
+	std::ifstream::pos_type getFileSize(const char* filename);
+
 }
 
 #endif 
