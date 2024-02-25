@@ -78,6 +78,22 @@ void setSocketStateDet(ServerSocket::SocketState &socketState, HttpRequest::eReq
 	}
 }
 
+std::string getCurrentTime()
+{
+	// Get current time
+	std::time_t currentTime = std::time(nullptr);
+
+	// Convert to struct tm
+	std::tm* timeInfo = std::gmtime(&currentTime);
+
+	// Format the time
+	char buffer[80];
+	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
+
+	// Convert to string
+	return std::string(buffer);
+}
+
 
 void acceptConnection(int index, SocketState* sockets, int& socketsCount)
 {

@@ -56,5 +56,6 @@ string GetQuery(const string& request, const string& param);
 template <typename TP>
 time_t parse_to_time_t(TP tp);
 void setSocketStateDet(ServerSocket::SocketState &socketState, HttpRequest::eRequestType type, int bufferIndex);
+std::string getCurrentTime();
 /*----------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------------------------*/

@@ -4,18 +4,15 @@
 
 std::string HttpRequest::doGet(ServerSocket::SocketState& socket, int& buffLen)
 {
-	int fileSize = 0;
 	char* subBuff;
-	char sendBuff[bufferSize], readBuff[bufferSize];
-	std::string message, fileSizeString, fileAddress;
+	char readBuff[bufferSize];
+	HttpStatus::eCode code;
+	std::string message, fileAddress;
 	std::ifstream File;
 	socket.prevActivity = time(0);
 	fileAddress = "C:\\temp\\index";
-	std::string FileContent = "";
-	subBuff = strtok(socket.buffer, " ");
+	std::string fileContent = "";
 	std::string langValue = GetQuery(subBuff, "lang");
-	time_t currentTime;
-	time(&currentTime);
 
 	if (langValue.empty())
 	{
@@ -29,132 +26,138 @@ std::string HttpRequest::doGet(ServerSocket::SocketState& socket, int& buffLen)
 	File.open(fileAddress);
 	if (!File)
 	{
-		message = httpMessageStart(HttpStatus::eCode::not_found, nullptr);
 		File.open("C:\\temp\\error.html");
+		code = HttpStatus::eCode::not_found;
 	}
 	else
 	{
-		message = httpMessageStart(HttpStatus::eCode::ok, nullptr);
+		code = HttpStatus::eCode::ok;
 	}
 
 	if (File)
 	{
 		while (File.getline(readBuff, BUFFSIZE))
 		{
-			FileContent += readBuff;
-			fileSize += strlen(readBuff);
+			fileContent += readBuff;
 		}
 	}
-
-	message += "\r\nContent-type: text/html";
-	message += "\r\nDate:";
-	message += ctime(&currentTime);
-	message += "Content-length: ";
-	fileSizeString = to_string(fileSize);
-	message += fileSizeString;
-	message += "\r\n\r\n";
-	message += FileContent;
-	buffLen = message.size();
 	File.close();
+
+	HttpResponse::Response* response = HttpResponse::buildHttpResponse(httpVer, code, "text/html", fileContent);
+	message = HttpResponse::httpResponseToString(*response);
+	free(response);
 	return message;
 }
 
 std::string HttpRequest::doHead(ServerSocket::SocketState& socket, int& buffLen)
 {
 	int fileSize = 0;
-	char sendBuff[bufferSize];
-	std::string message, fileSizeString;
+	std::string message, fileContent = "";;
+	char readBuff[bufferSize];
 	const std::string filePath = "C:\\temp\\indexen.html";
 	std::ifstream File;
+	HttpStatus::eCode code;
 	socket.prevActivity = time(0);
-	
+
 	File.open(filePath);
 	if (!File) {
-		message = httpMessageStart(HttpStatus::eCode::not_found, nullptr);
+		code = HttpStatus::eCode::not_found;
 		File.open("C:\\temp\\error.html");
-		fileSize = 0;
 	}
 	else {
-		message = httpMessageStart(HttpStatus::eCode::ok, nullptr);
+		code = HttpStatus::eCode::ok;
 		File.seekg(0, std::ios::end);
-		fileSize = File.tellg();
 	}
 
-	std::string lastModifiedTime = getLastModifiedTime(filePath);
+	if (File)
+	{
+		while (File.getline(readBuff, BUFFSIZE))
+		{
+			fileContent += readBuff;
+		}
+	}
 
-	message += "\r\nContent-type: text/html";
-	message += "\r\nDate:";
-	message += lastModifiedTime;
-	message += "\r\nContent-length: ";
-	fileSize = File.tellg();
-	fileSizeString = std::to_string(fileSize);
-	message += fileSizeString;
-	message += "\r\n\r\n";
-	buffLen = message.size();
 	File.close();
+
+	HttpResponse::Response* response = HttpResponse::buildHttpResponse(httpVer, code, "text/html", fileContent);
+	message = HttpResponse::httpResponseToString(*response);
+	free(response);
+	message = HttpResponse::extractHeaders(message);
 	return message;
 }
 
 std::string HttpRequest::doPut(ServerSocket::SocketState& socket, int& buffLen)
 {
-	std::string message, fileSizeString;
-	char fileName[bufferSize], sendBuff[bufferSize];
+	std::string message, body, fileSizeString;
+	char fileName[bufferSize];
 	int res = put(fileName, socket);
-	time_t currentTime;
-	time(&currentTime);
+	HttpStatus::eCode code;
 
 	switch (res)
 	{
 	case FAILED:
-		{
-			cout << "PUT " << fileName << "Failed";
-			message = httpMessageStart(HttpStatus::eCode::precondition_failed, " Precondition failed \r\nDate: ");
-			break;
-		}
+	{
+		cout << "PUT " << fileName << "Failed";
+		code = HttpStatus::eCode::precondition_failed;
+		body = R"({"status": "failed", "message" : "Resource update failed"})";
+		break;
+	}
 	case OK:
-		{
-			message = httpMessageStart(HttpStatus::eCode::ok, " OK \r\nDate: ");
-			break;
-		}
-
-	case CREATED:
-		{
-			message = httpMessageStart(HttpStatus::eCode::created, " CREATED \r\nDate: ");
-			break;
-		}
+	{
+		code = HttpStatus::eCode::ok;
+		body = R"({"status": "success", "message" : "Resource updated successfully"})";
+		break;
 	}
 
-	message += ctime(&currentTime);
-	message += "Content-length: ";
-	message += "\r\n\r\n";
-	buffLen = message.size();
+	case CREATED:
+	{
+		code = HttpStatus::eCode::created;
+		body = R"({"status": "success", "message" : "Resource updated successfully"})";
+		break;
+	}
+	}
+
+	HttpResponse::Response* response = HttpResponse::buildHttpResponse(httpVer, code, "application/json", body);
+	message = HttpResponse::httpResponseToString(*response);
+	free(response);
+	message = HttpResponse::extractHeaders(message);
+
 	return message;
 }
 
 std::string HttpRequest::doDelete(ServerSocket::SocketState& socket, int& buffLen)
 {
 	string fileName = GetQuery(socket.buffer, "fileName");
-	std::string message, fileSizeString;
+	std::string message, body;
 	fileName = string{ "C:\\temp\\" } + fileName;
 	fileName += string{ ".txt" };
-	char sendBuff[bufferSize];
-	time_t currentTime;
-	time(&currentTime);
+	bool deleteSuccess = true;
+	HttpStatus::eCode code;
+	
 
-	if (remove(fileName.c_str()) != 0)
+	deleteSuccess = (remove(fileName.c_str()) != 0);
+	if (!deleteSuccess)
 	{
-		message = httpMessageStart(HttpStatus::eCode::no_content, " File not found \r\nDate: ");
+		code = HttpStatus::eCode::bad_request;
+		body = R"({"error": "delete unsuccessful"})";
 	}
 	else
 	{
-		message = httpMessageStart(HttpStatus::eCode::ok, " OK DELETED \r\nDate: ");
+		code = HttpStatus::eCode::no_content;
 	}
 
-	message += ctime(&currentTime);
-	message += "Content-length: ";
-	message += fileSizeString;
-	message += "\r\n\r\n";
-	buffLen = message.size();
+	HttpResponse::Response* ret;
+	if(!deleteSuccess)
+	{
+		ret = HttpResponse::buildHttpResponse(httpVer, code, "application/json", body);
+		message = HttpResponse::httpResponseToString(*ret);
+	}else
+	{
+		ret = HttpResponse::buildHttpResponse(httpVer, code, "", "");
+		message = HttpResponse::httpResponseToStringNoContent(*ret);
+	}
+
+	free(ret);
 	return message;
 }
 
@@ -224,7 +227,7 @@ std::string HttpRequest::doNotAllowed(ServerSocket::SocketState& socket, int& bu
 
 std::string HttpRequest::httpMessageStart(HttpStatus::eCode code, std::string message)
 {
-	if(message.empty())
+	if (message.empty())
 	{
 		return httpVer + " " + std::to_string(static_cast<int>(code)) + " " + HttpStatus::reasonPhrase(code);
 	}
