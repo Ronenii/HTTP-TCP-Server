@@ -1,7 +1,9 @@
 #pragma once
 #ifndef HTTPREQUEST
 #define HTTPREQUEST
-#include  "ServerSocket.h"
+
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "HttpStatus.h"
 #include  "HttpResponse.h"
 #include <exception>
@@ -14,6 +16,10 @@
 #include <filesystem>
 #include <format>
 
+
+namespace ServerSocket {
+	struct SocketState;
+}
 
 namespace HttpRequest
 {
@@ -34,8 +40,8 @@ namespace HttpRequest
 
 
 	// Placeholders
-	std::string doGet(ServerSocket::SocketState& socket, int &buffLen);
-	std::string doHead(ServerSocket::SocketState &socket, int& buffLen);
+	std::string doGet(ServerSocket::SocketState& socket, int& buffLen);
+	std::string doHead(ServerSocket::SocketState& socket, int& buffLen);
 	std::string doPut(ServerSocket::SocketState& socket, int& buffLen);
 	std::string doPost(ServerSocket::SocketState& socket, int& buffLen);
 	std::string doDelete(ServerSocket::SocketState& socket, int& buffLen);

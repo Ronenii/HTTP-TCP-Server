@@ -10,37 +10,12 @@
 #include "HttpStatus.h"
 #include "ServerSocket.h"
 
-#define OK 200
-#define CREATED 201
-#define NO_CONTENT 204
-#define NOT_OK 400
-#define NOT_FOUND 404
-#define FAILED 412
-
 constexpr int PORT = 8080;
 constexpr int MAX_SOCKETS = 60;
 constexpr int BUFFSIZE = 1024;
 
 using namespace std;
-
-struct SocketState {
-	SOCKET					id;
-	enum eSocketStatus		recv;
-	enum eSocketStatus		send;
-	enum eRequestType		httpReq;
-	char					buffer[BUFFSIZE];
-	time_t					prevActivity;
-	int						socketDataLen;
-};
-
-/*-----------------------------------------ENUM--=-----------------------------------------------*/
-/*-----------------------------------------------------------------------------------------------*/
-enum eSocketStatus { EMPTY, LISTEN, RECEIVE, IDLE, SEND };
-/*-----------------------------------------------------------------------------------------------*/
-/*-----------------------------------------------------------------------------------------------*/
-
-
-
+using namespace ServerSocket;
 
 
 /*------------------------------------FUNCTIONS-------------------------------------------------*/\

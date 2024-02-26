@@ -2,6 +2,8 @@
 #ifndef HTTPRESPONSE
 #define HTTPRESPONSE
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <string>
 #include "HttpStatus.h"
 #include "ServerLogic.h"

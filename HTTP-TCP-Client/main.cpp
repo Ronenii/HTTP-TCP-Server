@@ -18,7 +18,7 @@ void acceptConnection(int index);
 void receiveMessage(int index);
 void sendMessage(int index);
 
-SocketState sockets[MAX_SOCKETS] = { 0 };
+ServerSocket::SocketState sockets[MAX_SOCKETS] = { 0 };
 int socketsCount = 0;
 
 
@@ -198,7 +198,7 @@ bool addSocket(SOCKET id, int what)
 			sockets[i].id = id;
 			sockets[i].recv = static_cast<eSocketStatus>(what);
 			sockets[i].send = IDLE;
-			sockets[i].dataLen = 0;
+			sockets[i].socketDataLen = 0;
 			socketsCount++;
 			return (true);
 		}

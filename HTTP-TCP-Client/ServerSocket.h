@@ -2,7 +2,9 @@
 #ifndef SERVERSOCKET
 #define SERVERSOCKET
 
-#include "HttpRequest.h"
+#define _CRT_SECURE_NO_WARNINGS
+
+#include "HttpRequest.h"  // Forward declaration instead of including the full header
 #include <winsock2.h>
 #include <ctime>
 

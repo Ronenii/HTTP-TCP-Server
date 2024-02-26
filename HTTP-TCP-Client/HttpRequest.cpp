@@ -90,26 +90,25 @@ std::string HttpRequest::doPut(ServerSocket::SocketState& socket, int& buffLen)
 {
 	std::string message, body, fileSizeString;
 	char fileName[bufferSize];
-	int res = put(fileName, socket);
-	HttpStatus::eCode code;
+	HttpStatus::eCode code = static_cast<HttpStatus::eCode>(put(fileName, socket));
 
-	switch (res)
+	switch (code)
 	{
-	case FAILED:
+	case HttpStatus::eCode::precondition_failed:
 	{
 		cout << "PUT " << fileName << "Failed";
 		code = HttpStatus::eCode::precondition_failed;
 		body = R"({"status": "failed", "message" : "Resource update failed"})";
 		break;
 	}
-	case OK:
+	case HttpStatus::eCode::ok:
 	{
 		code = HttpStatus::eCode::ok;
 		body = R"({"status": "success", "message" : "Resource updated successfully"})";
 		break;
 	}
 
-	case CREATED:
+	case HttpStatus::eCode::created:
 	{
 		code = HttpStatus::eCode::created;
 		body = R"({"status": "success", "message" : "Resource updated successfully"})";
