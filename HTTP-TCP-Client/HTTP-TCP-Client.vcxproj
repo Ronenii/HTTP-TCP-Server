@@ -141,15 +141,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="HttpRequest.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="ServerLogic.cpp" />
+    <ClCompile Include="ServerFuncs.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="HttpRequest.h" />
-    <ClInclude Include="HttpStatus.h" />
-    <ClInclude Include="ServerLogic.h" />
-    <ClInclude Include="ServerSocket.h" />
+    <ClInclude Include="ServerFuncs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,9 +1,10 @@
-#include "ServerLogic.h"
-
+#include "ServerFuncs.h"
+#include <sstream>
 #include <unordered_map>
+#include <string>
+#include <filesystem>
 
-
-void rcvMessage(int index, ServerSocket::SocketState* sockets, int& socketsCount)
+void rcvMessage(int index, SocketState* sockets, int& socketsCount)
 {
 	SOCKET msgSocket = sockets[index].id;
 
@@ -14,13 +15,13 @@ void rcvMessage(int index, ServerSocket::SocketState* sockets, int& socketsCount
 	{
 		cout << "HTTP Server: Error at recv(): " << WSAGetLastError() << endl;
 		closesocket(msgSocket);
-		removeSocket(sockets[index], socketsCount, index);
+		removeSocket(index, sockets, socketsCount);
 		return;
 	}
 	if (bytesRecv == 0)
 	{
 		closesocket(msgSocket);
-		removeSocket(sockets[index], socketsCount, index);
+		removeSocket(index, sockets, socketsCount);
 		return;
 	}
 	else
@@ -29,54 +30,71 @@ void rcvMessage(int index, ServerSocket::SocketState* sockets, int& socketsCount
 		cout << "HTTP Server: Recieved: " << bytesRecv << " bytes of \"" << &sockets[index].buffer[len] << " \message.\n\n";
 		sockets[index].socketDataLen += bytesRecv;
 
+
 		if (sockets[index].socketDataLen > 0)
 		{
-			string buffer = sockets[index].buffer;
-			sockets[index].send = ServerSocket::eSocketStatus::SEND;
 
-			switch (buffer)
+			sockets[index].send = SEND;
+
+			if (strncmp(sockets[index].buffer, "GET", 3) == 0)
 			{
-			case "GET":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::get, 5);
-				break;
-			case "HEAD":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::head, 6);
-				break;
-			case "PUT":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::put, 0);
-				break;
-			case "DELETE":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::del, 0);
-				break;
-			case "TRACE":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::trace, 5);
-				break;
-			case "OPTIONS":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::options, 9);
-				break;
-			case "POST":
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::post, 6);
-				break;
-			default:
-				setSocketStateDet(sockets[index], HttpRequest::eRequestType::not_allowed, 0);
-				break;
+				sockets[index].httpReq = GET;
+				strcpy(sockets[index].buffer, &sockets[index].buffer[5]);
+				sockets[index].socketDataLen = strlen(sockets[index].buffer);
+				sockets[index].buffer[sockets[index].socketDataLen] = NULL;
+				return;
+			}
+			else if (strncmp(sockets[index].buffer, "HEAD", 4) == 0)
+			{
+				sockets[index].httpReq = HEAD;
+				strcpy(sockets[index].buffer, &sockets[index].buffer[6]);
+				sockets[index].socketDataLen = strlen(sockets[index].buffer);
+				sockets[index].buffer[sockets[index].socketDataLen] = NULL;
+				return;
+			}
+			else if (strncmp(sockets[index].buffer, "PUT", 3) == 0)
+			{
+				sockets[index].httpReq = PUT;
+				return;
+			}
+			else if (strncmp(sockets[index].buffer, "DELETE", 6) == 0)
+			{
+				sockets[index].httpReq = DELETE1;
+				return;
+			}
+			else if (strncmp(sockets[index].buffer, "TRACE", 5) == 0)
+			{
+				sockets[index].httpReq = TRACE;
+				strcpy(sockets[index].buffer, &sockets[index].buffer[5]);
+				sockets[index].socketDataLen = strlen(sockets[index].buffer);
+				sockets[index].buffer[sockets[index].socketDataLen] = NULL;
+				return;
+			}
+			else if (strncmp(sockets[index].buffer, "OPTIONS", 7) == 0)
+			{
+				sockets[index].httpReq = OPTIONS;
+				strcpy(sockets[index].buffer, &sockets[index].buffer[9]);
+				sockets[index].socketDataLen = strlen(sockets[index].buffer);
+				sockets[index].buffer[sockets[index].socketDataLen] = NULL;
+				return;
+			}
+			else if (strncmp(sockets[index].buffer, "POST", 4) == 0)
+			{
+				sockets[index].httpReq = POST;
+				strcpy(sockets[index].buffer, &sockets[index].buffer[6]);
+				sockets[index].socketDataLen = strlen(sockets[index].buffer);
+				sockets[index].buffer[sockets[index].socketDataLen] = NULL;
+				return;
+			}
+			else
+			{
+				sockets[index].httpReq = NOT_ALLOWED_REQ;
+				return;
 			}
 		}
 	}
 }
 
-
-void setSocketStateDet(ServerSocket::SocketState &socketState, HttpRequest::eRequestType type, int bufferIndex)
-{
-	socketState.httpReq = type;
-
-	if(type != HttpRequest::eRequestType::put && type != HttpRequest::eRequestType::del && type != HttpRequest::eRequestType::not_allowed)
-	{
-		strcpy(socketState.buffer, &socketState.buffer[bufferIndex]);
-		socketState.socketDataLen = strlen(socketState.buffer);
-		socketState.buffer[socketState.socketDataLen] = NULL;
-	}
-}
 
 
 void acceptConnection(int index, SocketState* sockets, int& socketsCount)
@@ -87,16 +105,16 @@ void acceptConnection(int index, SocketState* sockets, int& socketsCount)
 	int fromLen = sizeof(from);
 
 	SOCKET msgSocket = accept(id, (struct sockaddr*)&from, &fromLen);
-	if (INVALID_SOCKET == msgSocket) {
+	if (INVALID_SOCKET == msgSocket){
 		cout << "HTTP Server: Error at accept(): " << WSAGetLastError() << endl;
 		return;
 	}
 	cout << "HTTP Server: Client " << inet_ntoa(from.sin_addr) << ":" << ntohs(from.sin_port) << " is connected." << endl;
 	unsigned long flag = 1;
-	if (ioctlsocket(msgSocket, FIONBIO, &flag) != 0) {
+	if (ioctlsocket(msgSocket, FIONBIO, &flag) != 0){
 		cout << "HTTP Server: Error at ioctlsocket(): " << WSAGetLastError() << endl;
 	}
-	if (addSocket(msgSocket, RECEIVE, sockets, socketsCount) == false) {
+	if (addSocket(msgSocket, RECEIVE, sockets, socketsCount) == false){
 		cout << "\t\tToo many connections, dropped!\n";
 		closesocket(id);
 	}
@@ -116,11 +134,11 @@ bool addSocket(SOCKET id, enum eSocketStatus what, SocketState* sockets, int& so
 	}
 	return false;
 }
-void removeSocket(ServerSocket::SocketState &socket, int& socketsCount, int index)
+void removeSocket(int index, SocketState* sockets, int& socketsCount)
 {
-	socket.recv = ServerSocket::eSocketStatus::EMPTY;
-	socket.send = ServerSocket::eSocketStatus::EMPTY;
-	socket.prevActivity = 0;
+	sockets[index].recv = EMPTY;
+	sockets[index].send = EMPTY;
+	sockets[index].prevActivity = 0;
 	socketsCount--;
 	cout << "The socket number " << index << " has been removed\n" << endl;
 }
@@ -134,21 +152,21 @@ bool sendMessage(int index, SocketState* sockets)
 	string message, fileSizeString, fileAddress;
 	ifstream File;
 	time_t currentTime;
-	time(&currentTime);
+	time(&currentTime); 
 	SOCKET msgSocket = sockets[index].id;
-	sockets[index].prevActivity = time(0);
+	sockets[index].prevActivity = time(0); 
 	switch (sockets[index].httpReq)
 	{
 	case HEAD:
 	{
 		subBuff = strtok(sockets[index].buffer, " ");
-		fileAddress = "C:\\temp\\indexen.html";
+		fileAddress = "C:\\temp\\indexen.html"; 
 		File.open(fileAddress);
-		if (!File) {
+		if (!File){
 			message = "HTTP/1.1 " + to_string(NOT_FOUND) + " Not Found ";
 			fileSize = 0;
 		}
-		else {
+		else{
 			message = "HTTP/1.1 " + to_string(OK) + " OK ";
 			File.seekg(0, ios::end);
 			fileSize = File.tellg();
@@ -175,7 +193,7 @@ bool sendMessage(int index, SocketState* sockets)
 	{
 		string FileContent = "";
 		subBuff = strtok(sockets[index].buffer, " ");
-		fileAddress = "C:\\temp\\index";
+		fileAddress = "C:\\temp\\index"; 
 		string langValue = GetQuery(subBuff, "lang");
 		if (langValue.empty())
 		{
@@ -213,7 +231,7 @@ bool sendMessage(int index, SocketState* sockets)
 		fileSizeString = to_string(fileSize);
 		message += fileSizeString;
 		message += "\r\n\r\n";
-		message += FileContent;
+		message += FileContent; 
 		buffLen = message.size();
 		strcpy(sendBuff, message.c_str());
 		File.close();
@@ -292,7 +310,7 @@ bool sendMessage(int index, SocketState* sockets)
 		break;
 	}
 
-	case OPTIONS: {
+	case OPTIONS:{
 		message = "HTTP/1.1 " + to_string(NO_CONTENT) + " No Content\r\nOptions: HEAD, GET, POST, PUT, TRACE, DELETE, OPTIONS\r\n";
 		message += "Content-length: 0\r\n\r\n";
 		buffLen = message.size();
@@ -306,7 +324,7 @@ bool sendMessage(int index, SocketState* sockets)
 		message += ctime(&currentTime);
 		message += "Content-length: 0\r\n\r\n";
 		string bodyMessage = get_field_value(string{ sockets[index].buffer }, string{ "body" });
-		cout << "Message received: " << bodyMessage << "\n";
+		cout << "Message received: "<< bodyMessage<<"\n";
 		buffLen = message.size();
 		strcpy(sendBuff, message.c_str());
 		break;
@@ -345,29 +363,29 @@ int put(int index, char* filename, SocketState* sockets)
 	file_name = string{ filename };
 	file_name = string{ "C:\\temp\\" } + file_name + string{ ".txt" };
 	fstream outPutFile;
-	if (file_name.find("error") == string::npos) {
-		try {
+	if (file_name.find("error") == string::npos){
+		try{
 			outPutFile.open(file_name);
-			if (!outPutFile.good()) {
+			if (!outPutFile.good())	{
 				outPutFile.open(file_name.c_str(), ios::out);
 				CODE = CREATED;
 			}
-			if (!outPutFile.good()) {
+			if (!outPutFile.good()){
 				cout << "HTTP Server: Error writing file to local storage: " << WSAGetLastError() << endl;
 				CODE = FAILED;
 			}
-			if (value.empty()) {
+			if (value.empty()){
 				CODE = NO_CONTENT;
 			}
-			else {
+			else{
 				outPutFile << value;
 			}
 		}
-		catch (const exception&) {
+		catch (const exception&){
 			outPutFile.close();
 		}
 	}
-	else {
+	else{
 		cout << "HTTP Server: Error writing file to local storage: 'Error' name is not allowed" << endl;
 		CODE = FAILED;
 	}

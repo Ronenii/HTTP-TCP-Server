@@ -1,15 +1,15 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#include <winsock2.h>
 #include <string.h>
 #include <time.h>
+#include <string>
 #include <fstream>
 #include <iostream>
 #include <cstring>
-#include "HttpRequest.h"
-#include "HttpStatus.h"
-#include "ServerSocket.h"
 
+using namespace std;
 #define OK 200
 #define CREATED 201
 #define NO_CONTENT 204
@@ -21,9 +21,7 @@ constexpr int PORT = 8080;
 constexpr int MAX_SOCKETS = 60;
 constexpr int BUFFSIZE = 1024;
 
-using namespace std;
-
-struct SocketState {
+struct SocketState{
 	SOCKET					id;
 	enum eSocketStatus		recv;
 	enum eSocketStatus		send;
@@ -35,7 +33,8 @@ struct SocketState {
 
 /*-----------------------------------------ENUM--=-----------------------------------------------*/
 /*-----------------------------------------------------------------------------------------------*/
-enum eSocketStatus { EMPTY, LISTEN, RECEIVE, IDLE, SEND };
+enum eSocketStatus {EMPTY,LISTEN,RECEIVE,IDLE,SEND};
+enum eRequestType { GET = 1, HEAD, PUT, POST, DELETE1, TRACE, OPTIONS, NOT_ALLOWED_REQ };
 /*-----------------------------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------------------------*/
 
@@ -46,7 +45,7 @@ enum eSocketStatus { EMPTY, LISTEN, RECEIVE, IDLE, SEND };
 /*------------------------------------FUNCTIONS-------------------------------------------------*/\
 /*----------------------------------------------------------------------------------------------*/
 bool addSocket(SOCKET id, enum eSocketStatus what, SocketState* sockets, int& socketsCount);
-void removeSocket(ServerSocket::SocketState &socket, int& socketsCount, int index);
+void removeSocket(int index, SocketState* sockets, int& socketsCount);
 void acceptConnection(int index, SocketState* sockets, int& socketsCount);
 void rcvMessage(int index, SocketState* sockets, int& socketsCount);
 bool sendMessage(int index, SocketState* sockets);
@@ -55,6 +54,5 @@ string get_field_value(const string& request, const string& field);
 string GetQuery(const string& request, const string& param);
 template <typename TP>
 time_t parse_to_time_t(TP tp);
-void setSocketStateDet(ServerSocket::SocketState &socketState, HttpRequest::eRequestType type, int bufferIndex);
 /*----------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------------------------*/
