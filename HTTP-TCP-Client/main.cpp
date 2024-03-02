@@ -3,10 +3,10 @@
 
 void main()
 {
-	struct SocketState sockets[MAX_SOCKETS] = { 0 };
+	SocketState sockets[MAX_SOCKETS] = { 0 };
 	int socketsCount = 0;
 	time_t currentTime;
-	struct timeval timeOut;
+	timeval timeOut;
 	timeOut.tv_sec = 120;
 	timeOut.tv_usec = 0;
 	WSAData wsaData;

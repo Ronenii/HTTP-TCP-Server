@@ -143,8 +143,6 @@ void removeSocket(int index, SocketState* sockets, int& socketsCount)
 
 bool sendMessage(int index, SocketState* sockets)
 {
-	char sendBuff[BUFFSIZE], readBuff[BUFFSIZE];
-
 	int fileSize = 0;
 	string message, fileSizeString, fileAddress, FileContent;
 
@@ -159,7 +157,7 @@ bool sendMessage(int index, SocketState* sockets)
 	case RequestType::HEAD:
 		fileAddress = "C:\\temp\\indexen.html";
 		FileContent = getFileContent(fileAddress, fileSize);
-		message = generateResponse(HttpStatus::NOT_FOUND, FileContent, fileSize);
+		message = generateResponse(HttpStatus::NO_CONTENT, "", fileSize);
 		break;
 
 	case RequestType::GET:
@@ -169,15 +167,15 @@ bool sendMessage(int index, SocketState* sockets)
 		break;
 
 	case RequestType::PUT:
-		message = handlePutRequest(index, fileSize, sockets, currentTime);
+		message = handlePutRequest(index, fileSize, sockets);
 		break;
 
 	case RequestType::DELETE1:
-		message = handleDeleteRequest(sockets[index].buffer, fileSize, currentTime);
+		message = handleDeleteRequest(sockets[index].buffer, fileSize);
 		break;
 
 	case RequestType::TRACE:
-		message = generateTraceResponse(sockets[index].buffer, fileSize, currentTime);
+		message = generateTraceResponse(sockets[index].buffer, fileSize);
 		break;
 
 	case RequestType::OPTIONS:
@@ -185,7 +183,7 @@ bool sendMessage(int index, SocketState* sockets)
 		break;
 
 	case RequestType::POST:
-		message = handlePostRequest(sockets[index].buffer, currentTime);
+		message = handlePostRequest(sockets[index].buffer);
 		break;
 
 	case RequestType::NOT_ALLOWED_REQ:
@@ -258,13 +256,12 @@ string buildFileAddress(char* buffer)
 	return fileAddress;
 }
 
-string handlePutRequest(int index, int& fileSize, SocketState* sockets, time_t currentTime)
+string handlePutRequest(int index, int& fileSize, SocketState* sockets)
 {
 	char fileName[BUFFSIZE];
 	int res = put(index, fileName, sockets);
 
 	HttpStatus httpStatus = static_cast<HttpStatus>(res);
-
 	string message = "HTTP/1.1 " + to_string(static_cast<int>(httpStatus));
 	message += (httpStatus == HttpStatus::FAILED) ? " Precondition failed " : " OK ";
 	message += "\r\nDate: " + generateFormattedTime();
@@ -274,7 +271,7 @@ string handlePutRequest(int index, int& fileSize, SocketState* sockets, time_t c
 	return message;
 }
 
-string handleDeleteRequest(const char* buffer, int& fileSize, time_t currentTime)
+string handleDeleteRequest(const char* buffer, int& fileSize)
 {
 	string fileName = GetQuery(buffer, "fileName");
 	fileName = "C:\\temp\\" + fileName + ".txt";
@@ -290,7 +287,7 @@ string handleDeleteRequest(const char* buffer, int& fileSize, time_t currentTime
 	return message;
 }
 
-string generateTraceResponse(const char* buffer, int& fileSize, time_t currentTime)
+string generateTraceResponse(const char* buffer, int& fileSize)
 {
 	fileSize = strlen("TRACE") + strlen(buffer);
 
@@ -310,11 +307,11 @@ string generateOptionsResponse()
 	return message;
 }
 
-string handlePostRequest(const char* buffer, time_t currentTime)
+string handlePostRequest(const char* buffer)
 {
 	string message = "HTTP/1.1 " + to_string(static_cast<int>(HttpStatus::OK)) + " OK \r\nDate:";
 	message += generateFormattedTime();
-	message += "Content-length: 0\r\n\r\n";
+	message += "\r\nContent-length: 0\r\n\r\n";
 
 	string bodyMessage = get_field_value(string{ buffer }, string{ "body" });
 	cout << "Message received: " << bodyMessage << "\n";
