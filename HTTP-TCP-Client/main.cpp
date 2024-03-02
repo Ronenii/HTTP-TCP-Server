@@ -1,5 +1,5 @@
 #pragma comment(lib, "Ws2_32.lib")
-#include "ServerFuncs.h"
+#include "Logic.h"
 
 void main()
 {
@@ -39,7 +39,7 @@ void main()
 		WSACleanup();
 		return;
 	}
-	addSocket(listenSocket, LISTEN, sockets, socketsCount);
+	addSocket(listenSocket, SocketStatus::LISTEN, sockets, socketsCount);
 	cout << "Waiting for client connections..." << endl;
 	while (true)
 	{
@@ -56,14 +56,14 @@ void main()
 		FD_ZERO(&waitRecv);
 		for (int i = 0; i < MAX_SOCKETS; i++)
 		{
-			if ((sockets[i].recv == LISTEN) || (sockets[i].recv == RECEIVE))
+			if ((sockets[i].recv == SocketStatus::LISTEN) || (sockets[i].recv == SocketStatus::RECEIVE))
 				FD_SET(sockets[i].id, &waitRecv);
 		}
 		fd_set waitSend;
 		FD_ZERO(&waitSend);
 		for (int i = 0; i < MAX_SOCKETS; i++)
 		{
-			if (sockets[i].send == SEND)
+			if (sockets[i].send == SocketStatus::SEND)
 				FD_SET(sockets[i].id, &waitSend);
 		}
 		int nfd;
@@ -82,11 +82,11 @@ void main()
 				nfd--;
 				switch (sockets[socket_index].recv)
 				{
-				case LISTEN:
+				case SocketStatus::LISTEN:
 					acceptConnection(socket_index, sockets, socketsCount);
 					break;
 
-				case RECEIVE:
+				case SocketStatus::RECEIVE:
 					rcvMessage(socket_index, sockets, socketsCount);
 					break;
 				}
@@ -98,7 +98,7 @@ void main()
 			if (FD_ISSET(sockets[i].id, &waitSend))
 			{
 				nfd--;
-				if (sockets[i].send == SEND)
+				if (sockets[i].send == SocketStatus::SEND)
 				{
 					if (!sendMessage(i, sockets))
 						continue;
