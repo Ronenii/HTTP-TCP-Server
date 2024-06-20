@@ -20,13 +20,13 @@ This project implements a small web server in C++ that supports multiple concurr
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/non-blocking-web-server.git
+   git clone https://github.com/Ronenii/HTTP-TCP-Server.git
    ```
 
 2. **Navigate to the project directory:**
 
    ```bash
-   cd non-blocking-web-server
+   cd HTTP-TCP-Server
    ```
 
 3. **Compile the server:** (Replace `make` with your build command if needed)
@@ -37,7 +37,7 @@ This project implements a small web server in C++ that supports multiple concurr
 
 4. **Add test files:**
 
-Add the contents of the /pages directory to the folder C:\temp
+Add the contents of the /pages directory to the folder C:\temp.
 
 
 ### Usage
@@ -83,8 +83,7 @@ POST requests are expected to contain strings which the server logs to the conso
 #### Tools Used
 
 * Wireshark: For capturing and analyzing network traffic.
-* Telnet and cURL: For sending various HTTP requests to the server.
-* Browsers (Chrome, Internet Explorer): For manual testing and validation.
+* cURL: For sending various HTTP requests to the server.
 
 #### Test Procedure
 
